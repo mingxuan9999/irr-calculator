@@ -1,0 +1,1117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IRR & Effective Fee Calculator | Ming Xuan, PFPFA</title>
+<meta name="description" content="Calculate and compare the real internal rate of return and effective fee of your investments. ETF vs structured plan, side by side.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --navy: #0a1628;
+    --navy-mid: #112240;
+    --navy-light: #1a3255;
+    --gold: #c9a84c;
+    --gold-light: #e8c97a;
+    --gold-pale: #f5e9c8;
+    --white: #ffffff;
+    --off-white: #f8f6f1;
+    --text-primary: #0a1628;
+    --text-secondary: #4a5568;
+    --text-muted: #8896a8;
+    --border: rgba(10,22,40,0.1);
+    --border-gold: rgba(201,168,76,0.3);
+    --success: #1a7a4a;
+    --success-bg: #e8f5ee;
+    --danger: #b91c1c;
+    --danger-bg: #fef2f2;
+    --radius: 12px;
+    --radius-sm: 8px;
+    --shadow: 0 1px 3px rgba(10,22,40,0.08), 0 4px 16px rgba(10,22,40,0.06);
+    --shadow-md: 0 4px 24px rgba(10,22,40,0.12);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--off-white);
+    color: var(--text-primary);
+    font-size: 15px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* HEADER */
+  header {
+    background: var(--navy);
+    color: var(--white);
+    padding: 0;
+    position: relative;
+    overflow: hidden;
+  }
+
+  header::before {
+    content: '';
+    position: absolute;
+    top: -60px; right: -60px;
+    width: 320px; height: 320px;
+    border-radius: 50%;
+    border: 1px solid rgba(201,168,76,0.15);
+  }
+
+  header::after {
+    content: '';
+    position: absolute;
+    bottom: -40px; left: -40px;
+    width: 200px; height: 200px;
+    border-radius: 50%;
+    border: 1px solid rgba(201,168,76,0.1);
+  }
+
+  .header-inner {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 48px 24px 40px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .header-eyebrow {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 16px;
+  }
+
+  header h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(28px, 5vw, 44px);
+    font-weight: 400;
+    line-height: 1.15;
+    color: var(--white);
+    margin-bottom: 14px;
+  }
+
+  header h1 em {
+    font-style: italic;
+    color: var(--gold-light);
+  }
+
+  header p {
+    font-size: 15px;
+    color: rgba(255,255,255,0.65);
+    max-width: 560px;
+    line-height: 1.65;
+    margin-bottom: 28px;
+  }
+
+  .header-meta {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+
+  .advisor-chip {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(201,168,76,0.25);
+    border-radius: 40px;
+    padding: 8px 16px 8px 8px;
+  }
+
+  .advisor-avatar {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: var(--gold);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 500;
+    color: var(--navy);
+    flex-shrink: 0;
+  }
+
+  .advisor-name { font-size: 13px; color: var(--white); font-weight: 500; }
+  .advisor-firm { font-size: 11px; color: rgba(255,255,255,0.5); }
+
+  .disclaimer-badge {
+    font-size: 11px;
+    color: rgba(255,255,255,0.4);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 4px;
+    padding: 4px 10px;
+  }
+
+  /* MAIN */
+  main {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 32px 24px 80px;
+  }
+
+  /* TABS */
+  .tab-nav {
+    display: flex;
+    gap: 0;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--white);
+    padding: 4px;
+    margin-bottom: 24px;
+    box-shadow: var(--shadow);
+  }
+
+  .tab-btn {
+    flex: 1;
+    padding: 10px 16px;
+    border: none;
+    border-radius: calc(var(--radius) - 2px);
+    background: transparent;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all .2s;
+    white-space: nowrap;
+  }
+
+  .tab-btn.active {
+    background: var(--navy);
+    color: var(--white);
+    font-weight: 500;
+  }
+
+  .tab-btn:hover:not(.active) {
+    color: var(--text-primary);
+    background: var(--off-white);
+  }
+
+  /* PANELS */
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* CARDS */
+  .card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    box-shadow: var(--shadow);
+    margin-bottom: 20px;
+  }
+
+  .card-title {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 20px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* FORM GRID */
+  .form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  .form-grid-3 {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  .field { display: flex; flex-direction: column; gap: 6px; }
+
+  .field label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    line-height: 1.3;
+  }
+
+  .field input {
+    height: 40px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 0 12px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    color: var(--text-primary);
+    background: var(--white);
+    transition: border-color .15s, box-shadow .15s;
+    width: 100%;
+  }
+
+  .field input:focus {
+    outline: none;
+    border-color: var(--gold);
+    box-shadow: 0 0 0 3px rgba(201,168,76,0.15);
+  }
+
+  .section-divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 20px 0;
+  }
+
+  .subsection-label {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 14px;
+  }
+
+  /* METRIC CARDS */
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .metric {
+    background: var(--off-white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 16px;
+  }
+
+  .metric-label {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    margin-bottom: 6px;
+  }
+
+  .metric-value {
+    font-family: 'DM Serif Display', serif;
+    font-size: 26px;
+    color: var(--text-primary);
+    line-height: 1.1;
+  }
+
+  .metric-sub {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+
+  .metric.highlight {
+    background: var(--navy);
+    border-color: var(--navy);
+  }
+
+  .metric.highlight .metric-label { color: rgba(255,255,255,0.5); }
+  .metric.highlight .metric-value { color: var(--gold-light); }
+  .metric.highlight .metric-sub { color: rgba(255,255,255,0.4); }
+
+  /* CHART */
+  .chart-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    box-shadow: var(--shadow);
+    margin-bottom: 20px;
+  }
+
+  .chart-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin-bottom: 16px;
+  }
+
+  .chart-wrap { position: relative; height: 240px; }
+
+  /* COMPARE TABLE */
+  .compare-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  .compare-col-head {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--border);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .col-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .row-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+
+  .row-item:last-child { border-bottom: none; }
+  .row-key { color: var(--text-secondary); flex-shrink: 0; }
+  .row-val { font-weight: 500; color: var(--text-primary); text-align: right; }
+
+  /* VERDICT */
+  .verdict-card {
+    background: var(--navy);
+    border-radius: var(--radius);
+    padding: 28px;
+    color: var(--white);
+    margin-bottom: 20px;
+  }
+
+  .verdict-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 20px;
+    color: var(--gold-light);
+    margin-bottom: 20px;
+  }
+
+  .verdict-metrics {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  .verdict-metric {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(201,168,76,0.2);
+    border-radius: var(--radius-sm);
+    padding: 16px;
+  }
+
+  .verdict-metric-label { font-size: 11px; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 6px; }
+  .verdict-metric-value { font-family: 'DM Serif Display', serif; font-size: 28px; color: var(--white); }
+  .verdict-metric-sub { font-size: 12px; color: rgba(255,255,255,0.45); margin-top: 4px; }
+
+  .verdict-summary {
+    font-size: 14px;
+    color: rgba(255,255,255,0.65);
+    line-height: 1.7;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    padding-top: 16px;
+  }
+
+  /* COLOR UTILITIES */
+  .text-success { color: var(--success) !important; }
+  .text-danger { color: var(--danger) !important; }
+  .text-gold { color: var(--gold) !important; }
+
+  .badge {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: .04em;
+    padding: 3px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+  }
+
+  .badge-success { background: var(--success-bg); color: var(--success); }
+  .badge-neutral { background: var(--off-white); color: var(--text-muted); border: 1px solid var(--border); }
+
+  /* HOW IT WORKS */
+  .explainer {
+    background: var(--white);
+    border: 1px solid var(--border-gold);
+    border-left: 3px solid var(--gold);
+    border-radius: var(--radius-sm);
+    padding: 20px 24px;
+    margin-bottom: 24px;
+  }
+
+  .explainer h3 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 17px;
+    font-weight: 400;
+    margin-bottom: 10px;
+    color: var(--text-primary);
+  }
+
+  .explainer p {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.7;
+  }
+
+  .explainer p + p { margin-top: 8px; }
+
+  /* CTA */
+  .cta-card {
+    background: linear-gradient(135deg, var(--navy) 0%, var(--navy-light) 100%);
+    border-radius: var(--radius);
+    padding: 36px 32px;
+    text-align: center;
+    margin-bottom: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .cta-card::before {
+    content: '';
+    position: absolute;
+    top: -40px; right: -40px;
+    width: 180px; height: 180px;
+    border-radius: 50%;
+    border: 1px solid rgba(201,168,76,0.15);
+  }
+
+  .cta-card h2 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 26px;
+    font-weight: 400;
+    color: var(--white);
+    margin-bottom: 12px;
+    position: relative;
+  }
+
+  .cta-card p {
+    font-size: 14px;
+    color: rgba(255,255,255,0.6);
+    margin-bottom: 24px;
+    max-width: 420px;
+    margin-left: auto;
+    margin-right: auto;
+    position: relative;
+  }
+
+  .cta-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; position: relative; }
+
+  .btn-primary {
+    background: var(--gold);
+    color: var(--navy);
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 12px 24px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+    transition: background .2s, transform .1s;
+  }
+
+  .btn-primary:hover { background: var(--gold-light); transform: translateY(-1px); }
+
+  .btn-outline {
+    background: transparent;
+    color: var(--white);
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: var(--radius-sm);
+    padding: 12px 24px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 400;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+    transition: border-color .2s, background .2s;
+  }
+
+  .btn-outline:hover { border-color: rgba(255,255,255,0.6); background: rgba(255,255,255,0.05); }
+
+  /* FOOTER */
+  footer {
+    background: var(--navy);
+    color: rgba(255,255,255,0.45);
+    text-align: center;
+    padding: 28px 24px;
+    font-size: 12px;
+    line-height: 1.7;
+  }
+
+  footer a { color: var(--gold); text-decoration: none; }
+
+  /* RESPONSIVE */
+  @media (max-width: 600px) {
+    .compare-grid { grid-template-columns: 1fr; }
+    .verdict-metrics { grid-template-columns: 1fr; }
+    .tab-btn { font-size: 12px; padding: 9px 10px; }
+    .metrics-grid { grid-template-columns: 1fr 1fr; }
+  }
+
+  /* ANIMATION */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .tab-panel.active { animation: fadeUp .25s ease; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <p class="header-eyebrow">Free financial education tool</p>
+    <h1>IRR &amp; Effective Fee<br><em>Calculator</em></h1>
+    <p>Most people compare investments by headline fee. This tool shows you what your money actually earns, after every cost and every bonus, so you can compare like for like.</p>
+    <div class="header-meta">
+      <div class="advisor-chip">
+        <div class="advisor-avatar">MX</div>
+        <div>
+          <div class="advisor-name">Ming Xuan</div>
+          <div class="advisor-firm">Licensed Financial Adviser, PFPFA</div>
+        </div>
+      </div>
+      <span class="disclaimer-badge">For educational purposes only</span>
+    </div>
+  </div>
+</header>
+
+<main>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px">
+    <div class="explainer">
+      <h3>What is IRR?</h3>
+      <p>Internal rate of return is the actual annualised return your money earns over the full investment period, calculated from every cash flow in and out.</p>
+      <p>It is not the fund's stated performance. It is what your money truly grew at, from day one to exit.</p>
+    </div>
+    <div class="explainer">
+      <h3>What is effective fee?</h3>
+      <p>Effective fee is the real annual cost drag: the difference between your gross return assumption and your actual IRR, expressed as a percentage per year.</p>
+      <p>Bonuses and rebates reduce it. Early exit and surrender charges increase it.</p>
+    </div>
+  </div>
+
+  <nav class="tab-nav" role="tablist">
+    <button class="tab-btn active" role="tab" onclick="setTab('etf',this)">ETF / Brokerage</button>
+    <button class="tab-btn" role="tab" onclick="setTab('policy',this)">Structured Plan</button>
+    <button class="tab-btn" role="tab" onclick="setTab('compare',this)">Side-by-side</button>
+  </nav>
+
+  <!-- ETF PANEL -->
+  <div id="tab-etf" class="tab-panel active">
+    <div class="card">
+      <p class="card-title">ETF / brokerage inputs</p>
+      <div class="form-grid">
+        <div class="field">
+          <label>Monthly investment (SGD)</label>
+          <input type="number" id="e-monthly" value="1000" min="100" step="100" oninput="calc()">
+        </div>
+        <div class="field">
+          <label>Investment period (years)</label>
+          <input type="number" id="e-years" value="20" min="1" max="50" oninput="calc()">
+        </div>
+        <div class="field">
+          <label>Expected gross return (% / yr)</label>
+          <input type="number" id="e-gross" value="7.00" min="0" max="20" step="0.25" oninput="calc()">
+        </div>
+      </div>
+      <hr class="section-divider">
+      <p class="subsection-label">Annual cost inputs</p>
+      <div class="form-grid-3">
+        <div class="field">
+          <label>Fund expense ratio (% / yr)</label>
+          <input type="number" id="e-expense" value="0.30" min="0" max="5" step="0.05" oninput="calc()">
+        </div>
+        <div class="field">
+          <label>Platform fee (% / yr)</label>
+          <input type="number" id="e-platform" value="0.18" min="0" max="2" step="0.01" oninput="calc()">
+        </div>
+        <div class="field">
+          <label>Transaction cost (% per trade)</label>
+          <input type="number" id="e-txn" value="0.20" min="0" max="2" step="0.05" oninput="calc()">
+        </div>
+        <div class="field">
+          <label>FX spread (% / yr, if any)</label>
+          <input type="number" id="e-fx" value="0.00" min="0" max="2" step="0.05" oninput="calc()">
+        </div>
+      </div>
+    </div>
+
+    <div class="metrics-grid">
+      <div class="metric">
+        <div class="metric-label">Total invested</div>
+        <div class="metric-value" id="e-total-in">—</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Projected maturity value</div>
+        <div class="metric-value" id="e-maturity">—</div>
+      </div>
+      <div class="metric highlight">
+        <div class="metric-label">Net IRR</div>
+        <div class="metric-value" id="e-irr">—</div>
+        <div class="metric-sub">After all costs</div>
+      </div>
+      <div class="metric highlight">
+        <div class="metric-label">Effective fee</div>
+        <div class="metric-value" id="e-eff-fee">—</div>
+        <div class="metric-sub">Annual drag on returns</div>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <p class="chart-title">Portfolio growth projection (SGD)</p>
+      <div class="chart-wrap"><canvas id="chart-etf"></canvas></div>
+    </div>
+  </div>
+
+  <!-- POLICY PANEL -->
+  <div id="tab-policy" class="tab-panel">
+    <div class="card">
+      <p class="card-title">Structured plan inputs</p>
+      <div class="form-grid">
+        <div class="field">
+          <label>Monthly premium (SGD)</label>
+          <input type="number" id="p-monthly" value="1000" min="100" step="100" oninput="calc()">
+        </div>
+        <div class="field">
+          <label>Investment period (years)</label>
+          <input type="number" id="p-years" value="20" min="1" max="50" oninput="calc()">
+        </div>
+        <div class="field">
+          <label>Expected gross return (% / yr)</label>
+          <input type="number" id="p-gross" value="7.00" min="0" max="20" step="0.25" oninput="calc()">
+        </div>
+      </div>
+      <hr class="section-divider">
+      <p class="subsection-label">Annual charges</p>
+      <div class="form-grid">
+        <div class="field">
+          <label>Management fee (% / yr)</label>
+          <input type="number" id="p-mgmt" value="1.50" min="0" max="5" step="0.05" oninput="calc()">
+        </div>
+        <div class="field">
+          <label>Policy / admin charge (% / yr)</label>
+          <input type="number" id="p-admin" value="0.30" min="0" max="3" step="0.05" oninput="calc()">
+        </div>
+        <div class="field">
+          <label>Soft dollar benefit (% / yr of AUM)</label>
+          <input type="number" id="p-soft" value="0.10" min="0" max="1" step="0.01" oninput="calc()">
+        </div>
+      </div>
+      <hr class="section-divider">
+      <p class="subsection-label">Bonuses (reduce effective fee)</p>
+      <div class="form-grid-3">
+        <div class="field">
+          <label>Welcome bonus (% of yr 1 premiums)</label>
+          <input type="number" id="p-welcome" value="20" min="0" max="150" step="5" oninput="calc()">
+        </div>
+        <div class="field">
+          <label>Loyalty bonus (% of annual premium)</label>
+          <input type="number" id="p-loyalty" value="5" min="0" max="100" step="1" oninput="calc()">
+        </div>
+        <div class="field">
+          <label>Loyalty bonus paid at year</label>
+          <input type="number" id="p-loyalty-yr" value="10" min="1" max="50" oninput="calc()">
+        </div>
+      </div>
+      <hr class="section-divider">
+      <p class="subsection-label">Early exit scenario</p>
+      <div class="form-grid">
+        <div class="field">
+          <label>Surrender charge if exit early (%)</label>
+          <input type="number" id="p-surrender" value="0" min="0" max="100" step="1" oninput="calc()">
+        </div>
+        <div class="field">
+          <label>Exit at year (0 = full term)</label>
+          <input type="number" id="p-exit-yr" value="0" min="0" max="50" oninput="calc()">
+        </div>
+      </div>
+    </div>
+
+    <div class="metrics-grid">
+      <div class="metric">
+        <div class="metric-label">Total premiums paid</div>
+        <div class="metric-value" id="p-total-in">—</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Projected maturity value</div>
+        <div class="metric-value" id="p-maturity">—</div>
+      </div>
+      <div class="metric highlight">
+        <div class="metric-label">Net IRR</div>
+        <div class="metric-value" id="p-irr">—</div>
+        <div class="metric-sub">After all costs and bonuses</div>
+      </div>
+      <div class="metric highlight">
+        <div class="metric-label">Effective fee</div>
+        <div class="metric-value" id="p-eff-fee">—</div>
+        <div class="metric-sub">Gross return minus net IRR</div>
+      </div>
+    </div>
+
+    <div id="early-exit-notice" style="display:none;background:#fef3c7;border:1px solid #d97706;border-radius:8px;padding:14px 18px;font-size:13px;color:#92400e;margin-bottom:16px;line-height:1.6"></div>
+
+    <div class="chart-card">
+      <p class="chart-title">Portfolio growth projection (SGD)</p>
+      <div class="chart-wrap"><canvas id="chart-policy"></canvas></div>
+    </div>
+  </div>
+
+  <!-- COMPARE PANEL -->
+  <div id="tab-compare" class="tab-panel">
+    <div class="compare-grid">
+      <div class="card">
+        <div class="compare-col-head">
+          <span class="col-dot" style="background:#1e6ab0"></span>
+          ETF / brokerage
+        </div>
+        <div class="row-item"><span class="row-key">Monthly investment</span><span class="row-val" id="c-e-monthly">—</span></div>
+        <div class="row-item"><span class="row-key">Period</span><span class="row-val" id="c-e-years">—</span></div>
+        <div class="row-item"><span class="row-key">Total invested</span><span class="row-val" id="c-e-total">—</span></div>
+        <div class="row-item"><span class="row-key">Gross return assumed</span><span class="row-val" id="c-e-gross">—</span></div>
+        <div class="row-item"><span class="row-key">Total annual cost drag</span><span class="row-val" id="c-e-cost">—</span></div>
+        <div class="row-item"><span class="row-key">Effective fee</span><span class="row-val" id="c-e-eff">—</span></div>
+        <div class="row-item"><span class="row-key">Projected maturity</span><span class="row-val" id="c-e-maturity">—</span></div>
+        <div class="row-item"><span class="row-key" style="font-weight:500">Net IRR</span><span class="row-val" id="c-e-irr" style="font-family:'DM Serif Display',serif;font-size:18px">—</span></div>
+      </div>
+      <div class="card">
+        <div class="compare-col-head">
+          <span class="col-dot" style="background:#1a7a4a"></span>
+          Structured plan
+        </div>
+        <div class="row-item"><span class="row-key">Monthly premium</span><span class="row-val" id="c-p-monthly">—</span></div>
+        <div class="row-item"><span class="row-key">Period</span><span class="row-val" id="c-p-years">—</span></div>
+        <div class="row-item"><span class="row-key">Total premiums paid</span><span class="row-val" id="c-p-total">—</span></div>
+        <div class="row-item"><span class="row-key">Gross return assumed</span><span class="row-val" id="c-p-gross">—</span></div>
+        <div class="row-item"><span class="row-key">Stated annual fees</span><span class="row-val" id="c-p-cost">—</span></div>
+        <div class="row-item"><span class="row-key">Effective fee (after bonuses)</span><span class="row-val" id="c-p-eff">—</span></div>
+        <div class="row-item"><span class="row-key">Projected maturity</span><span class="row-val" id="c-p-maturity">—</span></div>
+        <div class="row-item"><span class="row-key" style="font-weight:500">Net IRR</span><span class="row-val" id="c-p-irr" style="font-family:'DM Serif Display',serif;font-size:18px">—</span></div>
+      </div>
+    </div>
+
+    <div class="verdict-card">
+      <div class="verdict-title">Side-by-side verdict</div>
+      <div class="verdict-metrics">
+        <div class="verdict-metric">
+          <div class="verdict-metric-label">IRR difference</div>
+          <div class="verdict-metric-value" id="v-irr-diff">—</div>
+          <div class="verdict-metric-sub" id="v-irr-winner">—</div>
+        </div>
+        <div class="verdict-metric">
+          <div class="verdict-metric-label">Effective fee difference</div>
+          <div class="verdict-metric-value" id="v-fee-diff">—</div>
+          <div class="verdict-metric-sub" id="v-fee-winner">—</div>
+        </div>
+        <div class="verdict-metric">
+          <div class="verdict-metric-label">Maturity value difference</div>
+          <div class="verdict-metric-value" id="v-mat-diff">—</div>
+          <div class="verdict-metric-sub" id="v-mat-winner">—</div>
+        </div>
+        <div class="verdict-metric">
+          <div class="verdict-metric-label">Same gross return assumed?</div>
+          <div class="verdict-metric-value" id="v-same-gross">—</div>
+          <div class="verdict-metric-sub">Fair comparison baseline</div>
+        </div>
+      </div>
+      <div class="verdict-summary" id="v-summary">—</div>
+    </div>
+
+    <div class="chart-card">
+      <p class="chart-title">Growth comparison: ETF vs structured plan (SGD)</p>
+      <div class="chart-wrap" style="height:260px"><canvas id="chart-compare"></canvas></div>
+    </div>
+  </div>
+
+  <!-- CTA -->
+  <div class="cta-card">
+    <h2>Want to run this on your actual plan?</h2>
+    <p>DM me "FEES" on LinkedIn and I'll walk you through a personalised illustration, no obligation, no product pitch.</p>
+    <div class="cta-actions">
+      <a href="https://www.linkedin.com/in/" class="btn-primary" target="_blank" rel="noopener">Connect on LinkedIn</a>
+      <a href="mailto:mingxuan@pfpfa.com" class="btn-outline">Send an email</a>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  <p><strong style="color:rgba(255,255,255,0.7)">Ming Xuan</strong> &nbsp;|&nbsp; Licensed Financial Adviser, PFPFA Singapore</p>
+  <p style="margin-top:8px">This tool is for general educational purposes only and does not constitute financial advice or a product recommendation.<br>
+  All projections are illustrative. Actual returns depend on market performance, product terms, and individual circumstances.<br>
+  Please consult a licensed financial adviser before making any investment decision.</p>
+  <p style="margin-top:12px"><a href="https://www.linkedin.com/in/" target="_blank" rel="noopener">LinkedIn</a> &nbsp;&nbsp; <a href="mailto:mingxuan@pfpfa.com">Email</a></p>
+</footer>
+
+<script>
+let charts = {};
+
+function fmt(n) {
+  return 'S$' + Math.round(n).toLocaleString();
+}
+
+function fmtp(n) {
+  return n.toFixed(2) + '%';
+}
+
+function getVal(id) {
+  return parseFloat(document.getElementById(id).value) || 0;
+}
+
+function getInt(id) {
+  return parseInt(document.getElementById(id).value) || 0;
+}
+
+function computeIRR(cashflows) {
+  let lo = -0.9999, hi = 20, mid, npv;
+  for (let i = 0; i < 300; i++) {
+    mid = (lo + hi) / 2;
+    npv = cashflows.reduce((s, cf, t) => s + cf / Math.pow(1 + mid, t / 12), 0);
+    if (Math.abs(npv) < 0.1) break;
+    if (npv > 0) lo = mid; else hi = mid;
+  }
+  return mid * 12 * 100;
+}
+
+function projectETF() {
+  const monthly = getVal('e-monthly') || 1000;
+  const years = getInt('e-years') || 20;
+  const gross = getVal('e-gross') / 100;
+  const expense = getVal('e-expense') / 100;
+  const platform = getVal('e-platform') / 100;
+  const txn = getVal('e-txn') / 100;
+  const fx = getVal('e-fx') / 100;
+
+  const totalAnnualCost = expense + platform + fx;
+  const netMonthlyRate = (gross - totalAnnualCost) / 12;
+  const months = years * 12;
+  const txnDrag = txn * monthly;
+
+  let portfolio = 0;
+  const vals = [0];
+  for (let m = 1; m <= months; m++) {
+    portfolio = (portfolio + (monthly - txnDrag)) * (1 + netMonthlyRate);
+    if (m % 12 === 0) vals.push(Math.round(portfolio));
+  }
+
+  const totalIn = monthly * months;
+  const cashflows = [];
+  for (let m = 0; m < months; m++) cashflows.push(-monthly);
+  cashflows.push(-monthly + portfolio);
+
+  const irr = computeIRR(cashflows);
+  const effFee = gross * 100 - irr;
+
+  return { monthly, years, totalIn, maturity: portfolio, irr, effFee, totalAnnualCost: totalAnnualCost * 100, gross: gross * 100, vals };
+}
+
+function projectPolicy() {
+  const monthly = getVal('p-monthly') || 1000;
+  const years = getInt('p-years') || 20;
+  const gross = getVal('p-gross') / 100;
+  const mgmt = getVal('p-mgmt') / 100;
+  const admin = getVal('p-admin') / 100;
+  const soft = getVal('p-soft') / 100;
+  const welcome = getVal('p-welcome') / 100;
+  const loyalty = getVal('p-loyalty') / 100;
+  const loyaltyYr = getInt('p-loyalty-yr') || 10;
+  const surrender = getVal('p-surrender') / 100;
+  const exitYr = getInt('p-exit-yr');
+
+  const statedFee = (mgmt + admin) * 100;
+  const netMonthlyRate = (gross - mgmt - admin + soft) / 12;
+  const months = years * 12;
+  const welcomeBonus = monthly * 12 * welcome;
+  const loyaltyBonus = monthly * 12 * loyalty;
+
+  const actualExitMonth = (exitYr > 0 && exitYr < years) ? exitYr * 12 : months;
+
+  let portfolio = 0;
+  const vals = [0];
+  for (let m = 1; m <= months; m++) {
+    portfolio = (portfolio + monthly) * (1 + netMonthlyRate);
+    if (m === 12) portfolio += welcomeBonus;
+    if (m === loyaltyYr * 12 && m <= actualExitMonth) portfolio += loyaltyBonus;
+    if (m % 12 === 0) vals.push(Math.round(portfolio));
+    if (m === actualExitMonth) break;
+  }
+
+  const earlyExit = exitYr > 0 && exitYr < years;
+  if (earlyExit) portfolio = portfolio * (1 - surrender);
+
+  const totalIn = monthly * actualExitMonth;
+  const cashflows = [];
+  for (let m = 0; m < actualExitMonth; m++) cashflows.push(-monthly);
+  cashflows.push(-monthly + portfolio);
+
+  const irr = computeIRR(cashflows);
+  const effFee = gross * 100 - irr;
+
+  return { monthly, years: exitYr > 0 && exitYr < years ? exitYr : years, totalIn, maturity: portfolio, irr, effFee, statedFee, gross: gross * 100, vals, earlyExit, exitYr, surrender: surrender * 100 };
+}
+
+function makeChart(id, labels, datasets) {
+  if (charts[id]) charts[id].destroy();
+  const ctx = document.getElementById(id);
+  if (!ctx) return;
+  charts[id] = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { font: { size: 12, family: 'DM Sans' }, boxWidth: 10, padding: 16 } },
+        tooltip: {
+          callbacks: {
+            label: ctx => ' ' + ctx.dataset.label + ': ' + fmt(ctx.raw)
+          }
+        }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 11, family: 'DM Sans' }, color: '#8896a8' } },
+        y: {
+          grid: { color: 'rgba(0,0,0,0.05)' },
+          ticks: {
+            font: { size: 11, family: 'DM Sans' },
+            color: '#8896a8',
+            callback: v => v >= 1000000 ? 'S$' + (v / 1000000).toFixed(1) + 'M' : v >= 1000 ? 'S$' + (v / 1000).toFixed(0) + 'k' : 'S$' + v
+          }
+        }
+      }
+    }
+  });
+}
+
+function calc() {
+  const e = projectETF();
+  const p = projectPolicy();
+
+  document.getElementById('e-total-in').textContent = fmt(e.totalIn);
+  document.getElementById('e-maturity').textContent = fmt(e.maturity);
+  document.getElementById('e-irr').textContent = fmtp(e.irr);
+  document.getElementById('e-eff-fee').textContent = fmtp(e.effFee);
+
+  document.getElementById('p-total-in').textContent = fmt(p.totalIn);
+  document.getElementById('p-maturity').textContent = fmt(p.maturity);
+  document.getElementById('p-irr').textContent = fmtp(p.irr);
+  document.getElementById('p-eff-fee').textContent = fmtp(p.effFee);
+
+  const notice = document.getElementById('early-exit-notice');
+  if (p.earlyExit) {
+    notice.style.display = 'block';
+    notice.textContent = 'Early exit at year ' + p.exitYr + ' applied. A ' + p.surrender.toFixed(0) + '% surrender charge has been deducted from the projected value. Loyalty bonus only credited if exit year is on or after year ' + (document.getElementById('p-loyalty-yr').value) + '.';
+  } else {
+    notice.style.display = 'none';
+  }
+
+  const eLabels = Array.from({ length: e.years + 1 }, (_, i) => 'Yr ' + i);
+  const pLabels = Array.from({ length: p.years + 1 }, (_, i) => 'Yr ' + i);
+
+  makeChart('chart-etf', eLabels, [{
+    label: 'ETF portfolio value',
+    data: e.vals,
+    borderColor: '#1e6ab0',
+    backgroundColor: 'rgba(30,106,176,0.06)',
+    tension: 0.4, pointRadius: 0, borderWidth: 2.5
+  }]);
+
+  makeChart('chart-policy', pLabels, [{
+    label: 'Structured plan value',
+    data: p.vals,
+    borderColor: '#1a7a4a',
+    backgroundColor: 'rgba(26,122,74,0.06)',
+    tension: 0.4, pointRadius: 0, borderWidth: 2.5
+  }]);
+
+  document.getElementById('c-e-monthly').textContent = fmt(e.monthly) + '/mo';
+  document.getElementById('c-e-years').textContent = e.years + ' years';
+  document.getElementById('c-e-total').textContent = fmt(e.totalIn);
+  document.getElementById('c-e-gross').textContent = fmtp(e.gross);
+  document.getElementById('c-e-cost').textContent = fmtp(e.totalAnnualCost);
+  document.getElementById('c-e-eff').textContent = fmtp(e.effFee);
+  document.getElementById('c-e-maturity').textContent = fmt(e.maturity);
+  document.getElementById('c-e-irr').textContent = fmtp(e.irr);
+
+  document.getElementById('c-p-monthly').textContent = fmt(p.monthly) + '/mo';
+  document.getElementById('c-p-years').textContent = p.years + ' years';
+  document.getElementById('c-p-total').textContent = fmt(p.totalIn);
+  document.getElementById('c-p-gross').textContent = fmtp(p.gross);
+  document.getElementById('c-p-cost').textContent = fmtp(p.statedFee);
+  document.getElementById('c-p-eff').textContent = fmtp(p.effFee);
+  document.getElementById('c-p-maturity').textContent = fmt(p.maturity);
+  document.getElementById('c-p-irr').textContent = fmtp(p.irr);
+
+  const irrDiff = p.irr - e.irr;
+  const feeDiff = e.effFee - p.effFee;
+  const matDiff = p.maturity - e.maturity;
+  const sameGross = Math.abs(e.gross - p.gross) < 0.01;
+
+  const irrEl = document.getElementById('v-irr-diff');
+  irrEl.textContent = (irrDiff >= 0 ? '+' : '') + irrDiff.toFixed(2) + '%';
+  irrEl.style.color = irrDiff >= 0 ? '#e8c97a' : '#f87171';
+  document.getElementById('v-irr-winner').textContent = irrDiff > 0.05 ? 'Structured plan has higher net IRR' : irrDiff < -0.05 ? 'ETF has higher net IRR' : 'Effectively equal';
+
+  const feeEl = document.getElementById('v-fee-diff');
+  feeEl.textContent = (feeDiff >= 0 ? '+' : '') + feeDiff.toFixed(2) + '%';
+  feeEl.style.color = feeDiff >= 0 ? '#e8c97a' : '#f87171';
+  document.getElementById('v-fee-winner').textContent = feeDiff > 0.05 ? 'Structured plan has lower effective fee' : feeDiff < -0.05 ? 'ETF has lower effective fee' : 'Effectively equal';
+
+  const matEl = document.getElementById('v-mat-diff');
+  matEl.textContent = (matDiff >= 0 ? '+' : '-') + 'S$' + Math.abs(Math.round(matDiff)).toLocaleString();
+  matEl.style.color = matDiff >= 0 ? '#e8c97a' : '#f87171';
+  document.getElementById('v-mat-winner').textContent = matDiff > 0 ? 'Structured plan projects higher maturity value' : matDiff < 0 ? 'ETF projects higher maturity value' : 'Projected values are equal';
+
+  document.getElementById('v-same-gross').textContent = sameGross ? 'Yes' : 'No — adjust for fair comparison';
+  document.getElementById('v-same-gross').style.color = sameGross ? '#e8c97a' : '#f87171';
+
+  document.getElementById('v-summary').textContent =
+    'With these inputs, the structured plan projects a maturity value of ' + fmt(p.maturity) +
+    ' versus ' + fmt(e.maturity) + ' for the ETF, a difference of ' + (matDiff >= 0 ? '+' : '') + fmt(matDiff) + '. ' +
+    'The net IRR of the structured plan is ' + fmtp(p.irr) + ' versus ' + fmtp(e.irr) + ' for the ETF. ' +
+    'The effective fee of the structured plan is ' + fmtp(p.effFee) +
+    ' versus ' + fmtp(e.effFee) + ' for the ETF after all brokerage costs. ' +
+    (sameGross ? 'Both options use the same gross return assumption, making this a fair comparison of cost structures only. ' : 'Note: different gross returns are assumed, so this comparison reflects both cost differences and return assumptions. Set both to the same value for a pure cost comparison. ') +
+    'These figures are illustrative only. Actual outcomes will vary based on fund selection and market performance.';
+
+  const maxYrs = Math.max(e.years, p.years);
+  const compareLabels = Array.from({ length: maxYrs + 1 }, (_, i) => 'Yr ' + i);
+  const ePad = [...e.vals, ...Array(Math.max(0, maxYrs - e.years)).fill(null)];
+  const pPad = [...p.vals, ...Array(Math.max(0, maxYrs - p.years)).fill(null)];
+
+  makeChart('chart-compare', compareLabels, [
+    { label: 'ETF / brokerage', data: ePad, borderColor: '#1e6ab0', backgroundColor: 'rgba(30,106,176,0.06)', tension: 0.4, pointRadius: 0, borderWidth: 2.5 },
+    { label: 'Structured plan', data: pPad, borderColor: '#1a7a4a', backgroundColor: 'rgba(26,122,74,0.06)', tension: 0.4, pointRadius: 0, borderWidth: 2.5 }
+  ]);
+}
+
+function setTab(name, btn) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  btn.classList.add('active');
+  setTimeout(() => calc(), 60);
+}
+
+setTimeout(() => calc(), 100);
+</script>
+</body>
+</html>

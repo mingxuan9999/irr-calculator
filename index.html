@@ -925,10 +925,10 @@ function projectETF() {
   const monthly = getVal('e-monthly') || 1000;
   const years = getInt('e-years') || 20;
   const gross = getVal('e-gross') / 100;
-  const expense = getVal('e-expense') / 100;
-  const platform = getVal('e-platform') / 100;
-  const txn = getVal('e-txn') / 100;
-  const fx = getVal('e-fx') / 100;
+  const expense  = Math.max(0, getVal('e-expense'))  / 100;
+  const platform = Math.max(0, getVal('e-platform')) / 100;
+  const txn      = Math.max(0, getVal('e-txn'))      / 100;
+  const fx       = Math.max(0, getVal('e-fx'))       / 100;
 
   const totalAnnualCost = expense + platform + fx;
   const netMonthlyRate = (gross - totalAnnualCost) / 12;

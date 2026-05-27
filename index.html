@@ -926,8 +926,6 @@ function projectPolicy() {
   const monthly = getVal('p-monthly') || 1000;
   const years = getInt('p-years') || 20;
   const gross = getVal('p-gross') / 100;
-  const mgmt = getVal('p-mgmt') / 100;
-  const admin = getVal('p-admin') / 100;
   const soft = getVal('p-soft') / 100;
   const welcome = getVal('p-welcome') / 100;
   const loyalty = getVal('p-loyalty') / 100;
@@ -935,17 +933,31 @@ function projectPolicy() {
   const surrender = getVal('p-surrender') / 100;
   const exitYr = getInt('p-exit-yr');
 
-  const statedFee = (mgmt + admin) * 100;
-  const netMonthlyRate = (gross - mgmt - admin + soft) / 12;
+  // Tiered charges
+  const c1From = getInt('p-charge1-from') || 1;
+  const c1To   = getInt('p-charge1-to')   || 10;
+  const c1Rate = getVal('p-charge1-rate') / 100;
+  const c2From = getInt('p-charge2-from') || 11;
+  const c2To   = getInt('p-charge2-to')   || 20;
+  const c2Rate = getVal('p-charge2-rate') / 100;
+
+  function chargeForYear(yr) {
+    if (yr >= c1From && yr <= c1To) return c1Rate;
+    if (yr >= c2From && yr <= c2To) return c2Rate;
+    if (yr < c1From) return c1Rate;
+    return c2Rate; // beyond period 2 — use last rate
+  }
+
   const months = years * 12;
   const welcomeBonus = monthly * 12 * welcome;
   const loyaltyBonus = monthly * 12 * loyalty;
-
   const actualExitMonth = (exitYr > 0 && exitYr < years) ? exitYr * 12 : months;
 
   let portfolio = 0;
   const vals = [0];
   for (let m = 1; m <= months; m++) {
+    const yr = Math.ceil(m / 12);
+    const netMonthlyRate = (gross - chargeForYear(yr) + soft) / 12;
     portfolio = (portfolio + monthly) * (1 + netMonthlyRate);
     if (m === 12) portfolio += welcomeBonus;
     if (m === loyaltyYr * 12 && m <= actualExitMonth) portfolio += loyaltyBonus;
@@ -964,7 +976,9 @@ function projectPolicy() {
   const irr = computeIRR(cashflows);
   const effFee = gross * 100 - irr;
 
-  return { monthly, years: exitYr > 0 && exitYr < years ? exitYr : years, totalIn, maturity: portfolio, irr, effFee, statedFee, gross: gross * 100, vals, earlyExit, exitYr, surrender: surrender * 100 };
+  return { monthly, years: exitYr > 0 && exitYr < years ? exitYr : years, totalIn, maturity: portfolio, irr, effFee,
+    statedFee: ((c1Rate + c2Rate) / 2) * 100, gross: gross * 100, vals, earlyExit, exitYr, surrender: surrender * 100,
+    c1From, c1To, c1Rate: c1Rate * 100, c2From, c2To, c2Rate: c2Rate * 100 };
 }
 
 function makeChart(id, labels, datasets) {
@@ -1054,7 +1068,7 @@ function calc() {
   document.getElementById('c-p-years').textContent = p.years + ' years';
   document.getElementById('c-p-total').textContent = fmt(p.totalIn);
   document.getElementById('c-p-gross').textContent = fmtp(p.gross);
-  document.getElementById('c-p-cost').textContent = fmtp(p.statedFee);
+  document.getElementById('c-p-cost').textContent = 'Yr ' + p.c1From + '–' + p.c1To + ': ' + fmtp(p.c1Rate) + '  /  Yr ' + p.c2From + '–' + p.c2To + ': ' + fmtp(p.c2Rate);
   document.getElementById('c-p-eff').textContent = fmtp(p.effFee);
   document.getElementById('c-p-maturity').textContent = fmt(p.maturity);
   document.getElementById('c-p-irr').textContent = fmtp(p.irr);

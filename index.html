@@ -557,6 +557,29 @@
 
   footer a { color: var(--gold); text-decoration: none; }
 
+  /* TIERED CHARGES */
+  .charge-tier-row {
+    display: grid;
+    grid-template-columns: 60px 1fr 24px 1fr 16px 90px;
+    align-items: end;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .charge-tier-sep {
+    font-size: 13px;
+    color: var(--text-muted);
+    padding-bottom: 10px;
+    text-align: center;
+  }
+  .tier-label {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--gold);
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    padding-bottom: 10px;
+  }
+
   /* RESPONSIVE */
   @media (max-width: 600px) {
     .compare-grid { grid-template-columns: 1fr; }
@@ -701,16 +724,24 @@
         </div>
       </div>
       <hr class="section-divider">
-      <p class="subsection-label">Annual charges</p>
+      <p class="subsection-label">Annual charges — tiered by period</p>
+      <div class="charge-tier-row">
+        <span class="tier-label">Period 1</span>
+        <div class="field"><label>From year</label><input type="number" id="p-charge1-from" value="1" min="1" max="50" step="1" oninput="calc()"></div>
+        <span class="charge-tier-sep">to</span>
+        <div class="field"><label>To year</label><input type="number" id="p-charge1-to" value="10" min="1" max="50" step="1" oninput="calc()"></div>
+        <span class="charge-tier-sep">:</span>
+        <div class="field"><label>% / yr</label><input type="number" id="p-charge1-rate" value="2.00" min="0" max="10" step="0.05" oninput="calc()"></div>
+      </div>
+      <div class="charge-tier-row">
+        <span class="tier-label">Period 2</span>
+        <div class="field"><label>From year</label><input type="number" id="p-charge2-from" value="11" min="1" max="50" step="1" oninput="calc()"></div>
+        <span class="charge-tier-sep">to</span>
+        <div class="field"><label>To year</label><input type="number" id="p-charge2-to" value="20" min="1" max="50" step="1" oninput="calc()"></div>
+        <span class="charge-tier-sep">:</span>
+        <div class="field"><label>% / yr</label><input type="number" id="p-charge2-rate" value="1.00" min="0" max="10" step="0.05" oninput="calc()"></div>
+      </div>
       <div class="form-grid">
-        <div class="field">
-          <label>Management fee (% / yr)</label>
-          <input type="number" id="p-mgmt" value="1.50" min="0" max="5" step="0.05" oninput="calc()">
-        </div>
-        <div class="field">
-          <label>Policy / admin charge (% / yr)</label>
-          <input type="number" id="p-admin" value="0.30" min="0" max="3" step="0.05" oninput="calc()">
-        </div>
         <div class="field">
           <label>Soft dollar benefit (% / yr of AUM)</label>
           <input type="number" id="p-soft" value="0.10" min="0" max="1" step="0.01" oninput="calc()">
@@ -801,7 +832,7 @@
         <div class="row-item"><span class="row-key">Period</span><span class="row-val" id="c-p-years">—</span></div>
         <div class="row-item"><span class="row-key">Total premiums paid</span><span class="row-val" id="c-p-total">—</span></div>
         <div class="row-item"><span class="row-key">Gross return assumed</span><span class="row-val" id="c-p-gross">—</span></div>
-        <div class="row-item"><span class="row-key">Stated annual fees</span><span class="row-val" id="c-p-cost">—</span></div>
+        <div class="row-item"><span class="row-key">Annual charges (tiered)</span><span class="row-val" id="c-p-cost">—</span></div>
         <div class="row-item"><span class="row-key">Effective fee (after bonuses)</span><span class="row-val" id="c-p-eff">—</span></div>
         <div class="row-item"><span class="row-key">Projected maturity</span><span class="row-val" id="c-p-maturity">—</span></div>
         <div class="row-item"><span class="row-key" style="font-weight:500">Net IRR</span><span class="row-val" id="c-p-irr" style="font-family:'DM Serif Display',serif;font-size:18px">—</span></div>
